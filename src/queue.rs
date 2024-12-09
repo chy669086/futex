@@ -16,7 +16,7 @@ lazy_static! {
 }
 
 pub struct FutexQueues {
-    pub buckets: Box<[VecDeque<Mutex<Box<dyn FutexQ>>>]>,
+    pub buckets: Box<[VecDeque<Mutex<FutexQ>>]>,
 }
 
 impl FutexQueues {

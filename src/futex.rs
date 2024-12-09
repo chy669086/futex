@@ -1,6 +1,11 @@
-pub trait FutexQ: Send + Sync {
-    fn get_key(&self) -> &FutexKey;
-    fn get_bitset(&self) -> u32;
+use core::any::Any;
+
+use alloc::sync::Arc;
+
+pub struct FutexQ {
+    futex: FutexKey,
+    bitset: u32,
+    task: Arc<dyn Any + Send + Sync>,
 }
 
 /// **Now only support private key!**
@@ -9,6 +14,15 @@ pub struct FutexKey {
     pub pid: u64,
     pub(crate) aligned: u64,
     pub(crate) offset: u64,
+}
+
+impl FutexQ {
+    pub fn get_task<T>(&self) -> Option<Arc<T>>
+    where
+        T: Any + Send + Sync,
+    {
+        Arc::clone(&self.task).downcast().ok()
+    }
 }
 
 impl FutexKey {

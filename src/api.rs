@@ -1,7 +1,7 @@
 use super::def_api_handler;
 
-pub use mm::translate_vaddr;
-pub use task::sched_yield;
+pub(crate) use mm::translate_vaddr;
+pub(crate) use task::sched_yield;
 
 mod mm;
 mod task;
