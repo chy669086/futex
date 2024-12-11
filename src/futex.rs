@@ -2,9 +2,10 @@ use core::any::Any;
 
 use alloc::sync::Arc;
 
+///
 pub struct FutexQ {
-    futex: FutexKey,
-    bitset: u32,
+    pub key: FutexKey,
+    pub bitset: u32,
     task: Arc<dyn Any + Send + Sync>,
 }
 
@@ -17,6 +18,14 @@ pub struct FutexKey {
 }
 
 impl FutexQ {
+    pub fn new(futex: FutexKey, bitset: u32, task: Arc<dyn Any + Send + Sync>) -> Self {
+        Self {
+            key: futex,
+            bitset,
+            task,
+        }
+    }
+
     pub fn get_task<T>(&self) -> Option<Arc<T>>
     where
         T: Any + Send + Sync,

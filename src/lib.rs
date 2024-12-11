@@ -1,4 +1,7 @@
 #![no_std]
+//! A library for futex implementation.
+//! You should use `register_api_handler` to register the api handlers.
+//!
 
 extern crate alloc;
 
