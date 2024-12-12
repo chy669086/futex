@@ -3,11 +3,14 @@ use core::hash::Hasher;
 use alloc::{boxed::Box, collections::vec_deque::VecDeque, vec::Vec};
 use lazy_static::lazy_static;
 use log::info;
-use spin::Mutex;
+use spin::{Mutex, MutexGuard};
 
-use crate::futex::{FutexKey, FutexQ};
+use crate::{
+    flags::FUTEX_BITSET_MATCH_ANY,
+    futex::{FutexKey, FutexQ},
+};
 
-const FUTEX_HASH_SIZE: usize = 256;
+const FUTEX_HASH_SIZE: usize = 257;
 
 lazy_static! {
     pub static ref FUTEX_QUEUES: FutexQueues = {
@@ -37,12 +40,44 @@ impl FutexQueues {
         self.buckets[key].lock().push_back(futex);
     }
 
-    pub(crate) fn weak(&self, key: &FutexKey, bitset: u32) -> Option<FutexQ> {
+    pub(crate) fn weak_some(&self, key: &FutexKey, bitset: u32, cnt: usize) -> Vec<FutexQ> {
         let idx = futex_hash(key);
         let mut bucket = self.buckets[idx].lock();
-        for i in 0..bucket.len() {
-            if bucket[i].key == *key && bucket[i].bitset & bitset != 0 {
-                return bucket.remove(i);
+        let mut ret = Vec::new();
+        for _ in 0..cnt {
+            if let Some(futex) = FutexQueues::get_one(&mut bucket, *key, bitset) {
+                ret.push(futex);
+            } else {
+                break;
+            }
+        }
+        ret
+    }
+
+    pub(crate) fn requeue(&self, key1: &FutexKey, key2: &FutexKey) {
+        let idx1 = futex_hash(key1);
+        let idx2 = futex_hash(key2);
+        let mut bucket1 = self.buckets[idx1].lock();
+        let mut bucket2 = self.buckets[idx2].lock();
+        while let Some(futex) = FutexQueues::get_one(&mut bucket1, *key1, FUTEX_BITSET_MATCH_ANY) {
+            bucket2.push_back(futex);
+        }
+    }
+
+    fn get_one(
+        bucket: &mut MutexGuard<'_, VecDeque<FutexQ>>,
+        key: FutexKey,
+        bitset: u32,
+    ) -> Option<FutexQ> {
+        for _ in 0..bucket.len() {
+            if let Some(futex) = bucket.pop_front() {
+                if futex.key == key && futex.bitset == bitset {
+                    return Some(futex);
+                } else {
+                    bucket.push_back(futex);
+                }
+            } else {
+                break;
             }
         }
         None
@@ -51,8 +86,15 @@ impl FutexQueues {
 
 pub fn futex_hash(futex_key: &FutexKey) -> usize {
     let mut hasher = twox_hash::XxHash3_64::with_seed(0);
-    for key in [futex_key.pid, futex_key.aligned, futex_key.offset] {
-        hasher.write_u64(key);
+    match futex_key {
+        FutexKey::Private(key) => {
+            hasher.write_u64(key.pid);
+            hasher.write_u64(key.aligned);
+            hasher.write_u64(key.offset);
+        }
+        _ => {
+            unimplemented!();
+        }
     }
     hasher.finish() as usize % FUTEX_HASH_SIZE
 }

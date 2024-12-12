@@ -10,9 +10,15 @@ pub struct FutexQ {
 }
 
 /// **Now only support private key!**
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
+pub enum FutexKey {
+    Private(PrivateKey),
+    Shared,
+}
+
 #[derive(Copy, Clone, Default, Ord, PartialOrd, Eq, PartialEq, Debug)]
-pub struct FutexKey {
-    pub pid: u64,
+pub struct PrivateKey {
+    pub(crate) pid: u64,
     pub(crate) aligned: u64,
     pub(crate) offset: u64,
 }
@@ -34,7 +40,7 @@ impl FutexQ {
     }
 }
 
-impl FutexKey {
+impl PrivateKey {
     pub fn new(pid: u64, aligned: u64, offset: u64) -> Self {
         Self {
             pid,

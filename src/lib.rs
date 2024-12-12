@@ -12,4 +12,4 @@ pub mod api;
 pub mod flags;
 pub mod futex;
 pub mod queue;
-pub mod syscalls;
+pub mod syscall;
