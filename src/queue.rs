@@ -40,7 +40,7 @@ impl FutexQueues {
         self.buckets[key].lock().push_back(futex);
     }
 
-    pub(crate) fn weak_some(&self, key: &FutexKey, bitset: u32, cnt: usize) -> Vec<FutexQ> {
+    pub(crate) fn wake_some(&self, key: &FutexKey, bitset: u32, cnt: usize) -> Vec<FutexQ> {
         let idx = futex_hash(key);
         let mut bucket = self.buckets[idx].lock();
         let mut ret = Vec::new();

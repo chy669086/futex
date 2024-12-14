@@ -6,7 +6,7 @@ use super::def_api_handler;
 
 use alloc::sync::Arc;
 pub(crate) use mm::translate_vaddr;
-pub(crate) use task::{current_prosess_id, current_task, sched_yield, weak};
+pub(crate) use task::{current_prosess_id, current_task, sched_yield, wake};
 
 mod mm;
 mod task;
@@ -24,7 +24,7 @@ pub static TRANSLATE_VADDR: [fn(usize) -> Option<usize>];
 /// The `weak` function recv a task from the futex queue and push it into task_queue.
 /// return None if failed.
 #[def_api_handler]
-pub static WEAK: [fn(&FutexQ) -> Option<()>];
+pub static WAKE: [fn(&FutexQ) -> Option<()>];
 
 #[def_api_handler]
 pub static CURRENT_TASK: [fn() -> Option<Arc<dyn Any + Send + Sync>>];

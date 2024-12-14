@@ -1,6 +1,6 @@
 use core::sync::atomic::{AtomicU32, Ordering};
 
-use crate::api::{current_prosess_id, current_task, sched_yield, weak};
+use crate::api::{current_prosess_id, current_task, sched_yield, wake};
 use crate::flags::{
     FUTEX_BITSET_MATCH_ANY, FUTEX_CMP_REQUEUE, FUTEX_FD, FUTEX_PRIVATE_FLAG, FUTEX_REQUEUE,
     FUTEX_WAIT, FUTEX_WAIT_BITSET, FUTEX_WAKE, FUTEX_WAKE_BITSET,
@@ -82,9 +82,9 @@ fn requeue(addr: usize, val: u32, addr2: usize, typ: Type) -> i32 {
     let key = get_futex_key(addr, typ);
     let key2 = get_futex_key(addr2, typ);
 
-    let weak_tasks = FUTEX_QUEUES.weak_some(&key, FUTEX_BITSET_MATCH_ANY, val as usize);
+    let weak_tasks = FUTEX_QUEUES.wake_some(&key, FUTEX_BITSET_MATCH_ANY, val as usize);
     for futex in weak_tasks {
-        weak(&futex);
+        wake(&futex);
     }
 
     FUTEX_QUEUES.requeue(&key, &key2);
@@ -130,9 +130,9 @@ fn futex_wake(uaddr: *mut u32, val: u32, bitset: u32, typ: Type) -> i32 {
 
     let key = get_futex_key(addr, typ);
 
-    let weak_tasks = FUTEX_QUEUES.weak_some(&key, bitset, val as usize);
-    for futex in weak_tasks {
-        weak(&futex);
+    let wake_tasks = FUTEX_QUEUES.wake_some(&key, bitset, val as usize);
+    for futex in wake_tasks {
+        wake(&futex);
     }
 
     0

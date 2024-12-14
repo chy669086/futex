@@ -5,14 +5,14 @@ use lazy_static::lazy_static;
 
 use crate::futex::FutexQ;
 
-use super::{CURRENT_PROSESS_ID, CURRENT_TASK, SCHED_YIELD, WEAK};
+use super::{CURRENT_PROSESS_ID, CURRENT_TASK, SCHED_YIELD, WAKE};
 
 lazy_static! {
     pub static ref sched_yield: fn() = sched_yield_getter();
 }
 
 lazy_static! {
-    pub static ref weak: fn(&FutexQ) -> Option<()> = weak_getter();
+    pub static ref wake: fn(&FutexQ) -> Option<()> = wake_getter();
 }
 
 lazy_static! {
@@ -52,13 +52,13 @@ fn current_task_getter() -> fn() -> Option<Arc<dyn Any + Send + Sync>> {
     handler.clone()
 }
 
-fn weak_getter() -> fn(&FutexQ) -> Option<()> {
-    let mut iter = WEAK.iter();
+fn wake_getter() -> fn(&FutexQ) -> Option<()> {
+    let mut iter = WAKE.iter();
     let Some(handler) = iter.next() else {
-        panic!("No handler for WEAK");
+        panic!("No handler for WAKE");
     };
 
-    assert!(iter.next().is_none(), "Multiple handlers for WEAK");
+    assert!(iter.next().is_none(), "Multiple handlers for WAKE");
 
     drop(iter);
 
