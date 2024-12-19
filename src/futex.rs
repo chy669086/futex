@@ -10,15 +10,21 @@ pub struct FutexQ {
 }
 
 /// **Now only support private key!**
-#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug, Hash)]
 pub enum FutexKey {
     Private(PrivateKey),
-    Shared,
+    Shared(SharedKey),
 }
 
-#[derive(Copy, Clone, Default, Ord, PartialOrd, Eq, PartialEq, Debug)]
+#[derive(Copy, Clone, Default, Ord, PartialOrd, Eq, PartialEq, Debug, Hash)]
 pub struct PrivateKey {
     pub(crate) pid: u64,
+    pub(crate) aligned: u64,
+    pub(crate) offset: u64,
+}
+
+#[derive(Copy, Clone, Default, Ord, PartialOrd, Eq, PartialEq, Debug, Hash)]
+pub struct SharedKey {
     pub(crate) aligned: u64,
     pub(crate) offset: u64,
 }

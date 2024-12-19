@@ -1,5 +1,3 @@
-use core::hash::Hasher;
-
 use alloc::{boxed::Box, collections::vec_deque::VecDeque, vec::Vec};
 use lazy_static::lazy_static;
 use log::info;
@@ -8,6 +6,7 @@ use spin::{Mutex, MutexGuard};
 use crate::{
     flags::FUTEX_BITSET_MATCH_ANY,
     futex::{FutexKey, FutexQ},
+    hash::simple_hash,
 };
 
 const FUTEX_HASH_SIZE: usize = 257;
@@ -43,7 +42,7 @@ impl FutexQueues {
     pub(crate) fn wake_some(&self, key: &FutexKey, bitset: u32, cnt: usize) -> Vec<FutexQ> {
         let idx = futex_hash(key);
         let mut bucket = self.buckets[idx].lock();
-        let mut ret = Vec::new();
+        let mut ret = Vec::with_capacity(cnt);
         for _ in 0..cnt {
             if let Some(futex) = FutexQueues::get_one(&mut bucket, *key, bitset) {
                 ret.push(futex);
@@ -85,16 +84,5 @@ impl FutexQueues {
 }
 
 pub fn futex_hash(futex_key: &FutexKey) -> usize {
-    let mut hasher = twox_hash::XxHash3_64::with_seed(0);
-    match futex_key {
-        FutexKey::Private(key) => {
-            hasher.write_u64(key.pid);
-            hasher.write_u64(key.aligned);
-            hasher.write_u64(key.offset);
-        }
-        _ => {
-            unimplemented!();
-        }
-    }
-    hasher.finish() as usize % FUTEX_HASH_SIZE
+    simple_hash(futex_key) as usize % FUTEX_HASH_SIZE
 }

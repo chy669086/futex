@@ -29,5 +29,17 @@ pub const FUTEX_WAKE_BITSET_PRIVATE: i32 = FUTEX_WAKE_BITSET | FUTEX_PRIVATE_FLA
 pub const FLAGS_SHARED: i32 = 0x10;
 pub const FLAGS_CLOCKRT: i32 = 0x20;
 
+// Futex OP
+pub const FUTEX_OP_SET: i32 = 0;
+pub const FUTEX_OP_ADD: i32 = 1;
+pub const FUTEX_OP_OR: i32 = 2;
+pub const FUTEX_OP_ANDN: i32 = 3;
+pub const FUTEX_OP_XOR: i32 = 4;
+
 // Futex bitset
 pub const FUTEX_BITSET_MATCH_ANY: u32 = u32::MAX;
+
+// E
+pub const EAGAIN: i32 = 11;
+pub const EACCES: i32 = 13;
+pub const EINVAL: i32 = 22;

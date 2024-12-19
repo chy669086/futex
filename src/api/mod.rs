@@ -21,11 +21,12 @@ pub static SCHED_YIELD: [fn()];
 #[def_api_handler]
 pub static TRANSLATE_VADDR: [fn(usize) -> Option<usize>];
 
-/// The `weak` function recv a task from the futex queue and push it into task_queue.
+/// The `wake` function recv a task from the futex queue and push it into task_queue.
 /// return None if failed.
 #[def_api_handler]
 pub static WAKE: [fn(&FutexQ) -> Option<()>];
 
+/// The `current_task` function return the current task.
 #[def_api_handler]
 pub static CURRENT_TASK: [fn() -> Option<Arc<dyn Any + Send + Sync>>];
 

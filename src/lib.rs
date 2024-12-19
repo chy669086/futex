@@ -11,5 +11,6 @@ pub use linkme::distributed_slice as register_api_handler;
 pub mod api;
 pub mod flags;
 pub mod futex;
+pub(crate) mod hash;
 pub mod queue;
 pub mod syscall;

@@ -6,9 +6,7 @@ authors = ["Hongyi Chen <3040313336@qq.com>"]
 license = "MIT"
 
 [dependencies]
-linkme = "0.3"
-lazy_static = "1.5.0"
+linkme = { version = "0.3", default-features = false }
+lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
 log = "0.4"
 spin = "0.9"
-libc = "0.2"
-twox-hash = "2.1"
