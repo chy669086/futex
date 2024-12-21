@@ -58,7 +58,10 @@ impl FutexQueues {
         let idx2 = futex_hash(key2);
         let mut bucket1 = self.buckets[idx1].lock();
         let mut bucket2 = self.buckets[idx2].lock();
-        while let Some(futex) = FutexQueues::get_one(&mut bucket1, *key1, FUTEX_BITSET_MATCH_ANY) {
+        while let Some(mut futex) =
+            FutexQueues::get_one(&mut bucket1, *key1, FUTEX_BITSET_MATCH_ANY)
+        {
+            futex.key = *key2;
             bucket2.push_back(futex);
         }
     }
