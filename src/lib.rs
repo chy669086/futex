@@ -12,5 +12,5 @@ pub mod api;
 pub mod flags;
 pub mod futex;
 pub(crate) mod hash;
-pub mod queue;
+pub(crate) mod queue;
 pub mod syscall;

@@ -72,14 +72,14 @@ impl FutexQueues {
         bitset: u32,
     ) -> Option<FutexQ> {
         for _ in 0..bucket.len() {
-            if let Some(futex) = bucket.pop_front() {
-                if futex.key == key && futex.bitset == bitset {
-                    return Some(futex);
-                } else {
-                    bucket.push_back(futex);
-                }
-            } else {
+            let Some(futex) = bucket.pop_front() else {
                 break;
+            };
+
+            if futex.key == key && futex.bitset == bitset {
+                return Some(futex);
+            } else {
+                bucket.push_back(futex);
             }
         }
         None

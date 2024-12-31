@@ -1,12 +1,12 @@
 use core::sync::atomic::{AtomicU32, Ordering};
 
-use crate::api::{current_prosess_id, current_task, sched_yield, wake};
+use crate::api::{copy_from_user, current_prosess_id, current_task, sched_yield, wake};
 use crate::flags::{
     EACCES, EAGAIN, EINVAL, FUTEX_BITSET_MATCH_ANY, FUTEX_CMP_REQUEUE, FUTEX_FD, FUTEX_OP_ADD,
     FUTEX_OP_ANDN, FUTEX_OP_OR, FUTEX_OP_SET, FUTEX_OP_XOR, FUTEX_PRIVATE_FLAG, FUTEX_REQUEUE,
     FUTEX_WAIT, FUTEX_WAIT_BITSET, FUTEX_WAKE, FUTEX_WAKE_BITSET, FUTEX_WAKE_OP,
 };
-use crate::futex::{FutexKey, FutexQ, PrivateKey};
+use crate::futex::{FutexKey, FutexQ, PrivateKey, SharedKey};
 use crate::queue::FUTEX_QUEUES;
 
 #[derive(Clone, Copy)]
@@ -15,6 +15,7 @@ enum Type {
     Shared,
 }
 
+/// The `sys_futex` function provides a system call interface for futex.
 pub fn sys_futex(
     uaddr: *mut u32,
     futex_op: i32,
@@ -55,8 +56,18 @@ fn futex_cmp_requeue(uaddr: *mut u32, val: u32, uaddr2: *mut u32, val3: u32, typ
         return -EACCES;
     };
 
-    let ptr = addr as *mut AtomicU32;
-    let exp_val = unsafe { (*ptr).load(Ordering::SeqCst) };
+    let mut exp_val = 0;
+
+    let bytes_copied = copy_from_user(
+        uaddr,
+        &mut exp_val as *mut u32 as *mut u8,
+        core::mem::size_of::<u32>(),
+    );
+
+    if bytes_copied != core::mem::size_of::<u32>() {
+        return -EINVAL;
+    }
+
     if exp_val != val3 {
         return -EAGAIN;
     }
@@ -109,8 +120,18 @@ fn futex_wait(
         return -EACCES;
     };
 
-    let ptr = addr as *mut AtomicU32;
-    let exp_val = unsafe { (*ptr).load(Ordering::SeqCst) };
+    let mut exp_val = 0;
+
+    let bytes_copied = copy_from_user(
+        uaddr,
+        &mut exp_val as *mut u32 as *mut u8,
+        core::mem::size_of::<u32>(),
+    );
+
+    if bytes_copied != core::mem::size_of::<u32>() {
+        return -EINVAL;
+    }
+
     if exp_val != val {
         return -EAGAIN;
     }
@@ -164,10 +185,21 @@ fn futex_wake_op(
         wake(&futex);
     }
 
-    let addr2 = addr2 as *mut u32 as *mut AtomicU32;
+    // let addr2_kernel = addr2 as *mut u32 as *mut AtomicU32;
+    let mut addr2_kernel: u32 = 0;
+
+    let bytes_copied = copy_from_user(
+        uaddr2,
+        &mut addr2_kernel as *mut u32 as *mut u8,
+        core::mem::size_of::<u32>(),
+    );
+
+    if bytes_copied != core::mem::size_of::<u32>() {
+        return -EINVAL;
+    }
 
     // 在 uaddr2 上执行操作
-    let addr2_val = unsafe { &*addr2 }.load(Ordering::SeqCst);
+    let addr2_val = addr2_kernel;
     let new_val = match op as i32 {
         FUTEX_OP_ADD => addr2_val + val2,
         FUTEX_OP_SET => val2,
@@ -177,7 +209,17 @@ fn futex_wake_op(
         _ => return -EINVAL,
     };
 
-    unsafe { &*addr2 }.store(new_val, Ordering::SeqCst);
+    addr2_kernel = addr2_val;
+
+    let bytes_copied = copy_to_user(
+        uaddr2,
+        &mut addr2_kernel as *mut u32 as *mut u8,
+        core::mem::size_of::<u32>(),
+    );
+
+    if bytes_copied != core::mem::size_of::<u32>() {
+        return -EINVAL;
+    }
 
     0
 }
@@ -189,8 +231,6 @@ fn translate_uaddr(uaddr: *mut u32) -> Option<usize> {
 }
 
 fn get_futex_key(addr: usize, typ: Type) -> FutexKey {
-    let addr = addr;
-
     let aligned = (addr / 4096 * 4096) as u64;
     let offset = addr as u64 - aligned;
 
@@ -199,8 +239,6 @@ fn get_futex_key(addr: usize, typ: Type) -> FutexKey {
             let pid = current_prosess_id().unwrap() as u64;
             FutexKey::Private(PrivateKey::new(pid, aligned, offset))
         }
-        Type::Shared => {
-            unimplemented!()
-        }
+        Type::Shared => FutexKey::Shared(SharedKey::new(aligned, offset)),
     }
 }
